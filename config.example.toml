@@ -1,0 +1,4 @@
+tel_token = "telegram bot token"
+
+[channels]
+name = { chat = "chat id", thread = "msg thread id", pass = "password" }
