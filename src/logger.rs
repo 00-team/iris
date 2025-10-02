@@ -7,7 +7,7 @@ impl log::Log for MasterLogger {
         if t.starts_with("hyper_util") || t.starts_with("tracing") {
             return false;
         }
-        if t.starts_with("sqlx") {
+        if t.starts_with("sqlx") || t.starts_with("h2::codec") {
             return false;
         }
         // if md.level() > log::Level::Info {
