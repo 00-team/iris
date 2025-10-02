@@ -18,41 +18,26 @@ pub enum ErrorCode {
     DatabaseError,
     RateLimited,
     IndexOutOfBounds,
-    BadImage,
-    EncodeWebpError,
-    UserBanned,
-    BadPhone,
-    BadUsername,
-
-    PasswordMismatch,
-    PasswordWeak,
-    PasswordTooLong,
-    StringTooLong,
-    RemoveBgFailed,
 
     SendFailed,
+    FileTooBig,
 }
 
 impl ErrorCode {
     fn status(&self) -> u16 {
         match self {
-            Self::NotUnique | Self::PasswordTooLong => 400,
-            Self::BadPhone | Self::BadUsername | Self::PasswordWeak => 400,
-            Self::StringTooLong => 400,
-            Self::SendFailed => 400,
+            Self::NotUnique => 400,
+            Self::FileTooBig => 400,
 
             Self::IndexOutOfBounds => 400,
-            Self::BadImage | Self::EncodeWebpError => 400,
 
             Self::NotFound => 404,
 
-            Self::PasswordMismatch => 403,
-            Self::UserBanned => 403,
             Self::Forbidden | Self::BadAuth | Self::ForbiddenSelfEdit => 403,
 
             Self::RateLimited => 429,
 
-            Self::RemoveBgFailed => 500,
+            Self::SendFailed => 500,
             Self::Unknown => 500,
             Self::ServerError | Self::DatabaseError => 500,
         }
