@@ -15,10 +15,28 @@ use actix_web::{HttpResponse, Scope, post, web::Json};
 pub struct ApiDoc;
 
 #[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+enum ParseMode {
+    Markdown,
+    MarkdownV2,
+    Html,
+}
+
+impl ParseMode {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::MarkdownV2 => "MarkdownV2",
+            Self::Markdown => "Markdown",
+            Self::Html => "HTML",
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
 struct AbzarSendBody {
     channel: String,
     pass: String,
     text: String,
+    parse_mode: ParseMode,
 }
 
 #[derive(serde::Serialize)]
@@ -53,7 +71,7 @@ async fn r_send(body: Json<AbzarSendBody>) -> Horp {
         chat_id: &ch.chat,
         message_thread_id: ch.thread.as_ref().map(|v| v.as_str()),
         text: body.text.clone(),
-        parse_mode: "MarkdownV2",
+        parse_mode: body.parse_mode.as_str(),
     };
 
     let r = conf.tc.post(url).json(&bd).send().await?;
@@ -83,8 +101,8 @@ pub struct AbzarSendFileBody {
     pass: Text<String>,
     #[schema(value_type = String)]
     text: Text<String>,
-    // #[schema(value_type = AbzarSendBody)]
-    // x: MpJson<AbzarSendBody>,
+    #[schema(value_type = ParseMode)]
+    parse_mode: Text<ParseMode>,
 }
 
 #[utoipa::path(
@@ -125,7 +143,7 @@ async fn r_send_file(form: MultipartForm<AbzarSendFileBody>) -> Horp {
         .part("document", doc)
         .text("chat_id", ch.chat.clone())
         .text("caption", form.text.0.clone())
-        .text("parse_mode", "MarkdownV2");
+        .text("parse_mode", form.parse_mode.as_str());
 
     if let Some(tid) = &ch.thread {
         sf = sf.text("message_thread_id", tid.clone());
@@ -148,6 +166,8 @@ pub struct AbzarSendMpBody {
     pass: Text<String>,
     #[schema(value_type = String)]
     text: Text<String>,
+    #[schema(value_type = ParseMode)]
+    parse_mode: Text<ParseMode>,
 }
 
 #[utoipa::path(
@@ -179,8 +199,8 @@ async fn r_send_mp(form: MultipartForm<AbzarSendMpBody>) -> Horp {
     let bd = SendMessageBody {
         chat_id: &ch.chat,
         message_thread_id: ch.thread.as_ref().map(|v| v.as_str()),
-        text: form.0.text.clone(),
-        parse_mode: "MarkdownV2",
+        text: form.text.clone(),
+        parse_mode: form.parse_mode.as_str(),
     };
 
     let r = conf.tc.post(url).json(&bd).send().await?;
