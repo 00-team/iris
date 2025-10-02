@@ -1,0 +1,15 @@
+[Unit]
+Description=Iris
+After=syslog.target
+
+[Service]
+Type=simple
+Restart=always
+WorkingDirectory=/x/iris/
+ExecStart=/x/iris/target/release/iris
+KillSignal=SIGQUIT
+StandardError=file:/x/iris/log.err
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
