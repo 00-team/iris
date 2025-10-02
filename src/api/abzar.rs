@@ -8,7 +8,7 @@ use actix_web::{HttpResponse, Scope, post, web::Json};
 #[derive(utoipa::OpenApi)]
 #[openapi(
     tags((name = "api::abzar")),
-    paths(r_send, r_send_file),
+    paths(r_send, r_send_file, r_send_mp),
     servers((url = "/abzar")),
     modifiers(&UpdatePaths)
 )]
@@ -19,6 +19,15 @@ struct AbzarSendBody {
     channel: String,
     pass: String,
     text: String,
+}
+
+#[derive(serde::Serialize)]
+struct SendMessageBody<'a> {
+    chat_id: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message_thread_id: Option<&'a str>,
+    text: String,
+    parse_mode: &'static str,
 }
 
 #[utoipa::path(
@@ -39,15 +48,6 @@ async fn r_send(body: Json<AbzarSendBody>) -> Horp {
     }
 
     let url = conf.send_message.clone();
-
-    #[derive(serde::Serialize)]
-    struct SendMessageBody<'a> {
-        chat_id: &'a str,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        message_thread_id: Option<&'a str>,
-        text: String,
-        parse_mode: &'static str,
-    }
 
     let bd = SendMessageBody {
         chat_id: &ch.chat,
@@ -140,6 +140,58 @@ async fn r_send_file(form: MultipartForm<AbzarSendFileBody>) -> Horp {
     Ok(HttpResponse::Ok().finish())
 }
 
+#[derive(Debug, MultipartForm, utoipa::ToSchema)]
+pub struct AbzarSendMpBody {
+    #[schema(value_type = String)]
+    channel: Text<String>,
+    #[schema(value_type = String)]
+    pass: Text<String>,
+    #[schema(value_type = String)]
+    text: Text<String>,
+}
+
+#[utoipa::path(
+    post,
+    request_body(
+        content = AbzarSendMpBody,
+        content_type = "multipart/form-data"
+    ),
+    responses((status = 200))
+)]
+/// Send Message Multipart
+#[post("/send-mp/")]
+async fn r_send_mp(form: MultipartForm<AbzarSendMpBody>) -> Horp {
+    // if form.file.size >= 50_000_000 {
+    //     return crate::err!(FileTooBig, "max file size is 50MB");
+    // }
+
+    let conf = Config::get();
+    let Some(ch) = conf.channels.get(&form.channel.0) else {
+        return crate::err!(NotFound, "no channel");
+    };
+
+    if ch.pass != form.pass.0 {
+        return crate::err!(NotFound, "no channel");
+    }
+
+    let url = conf.send_message.clone();
+
+    let bd = SendMessageBody {
+        chat_id: &ch.chat,
+        message_thread_id: ch.thread.as_ref().map(|v| v.as_str()),
+        text: form.0.text.clone(),
+        parse_mode: "MarkdownV2",
+    };
+
+    let r = conf.tc.post(url).json(&bd).send().await?;
+    if r.status() != 200 {
+        log::error!("[tel_err mp]: {:#?}", r.text().await);
+        return crate::err!(SendFailed, "sending message to telegram failed");
+    }
+
+    Ok(HttpResponse::Ok().finish())
+}
+
 pub fn router() -> Scope {
-    Scope::new("/abzar").service(r_send).service(r_send_file)
+    Scope::new("/abzar").service(r_send).service(r_send_file).service(r_send_mp)
 }
