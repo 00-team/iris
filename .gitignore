@@ -8,3 +8,5 @@ config.local.toml
 config.toml
 config.iris.toml
 Cargo.lock
+log.err
+access.log
