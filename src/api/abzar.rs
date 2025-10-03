@@ -47,7 +47,7 @@ struct LinkPreviewOptions {
 
 impl Default for LinkPreviewOptions {
     fn default() -> Self {
-        Self { is_disabled: true, prefer_small_media: true }
+        Self { is_disabled: false, prefer_small_media: true }
     }
 }
 
