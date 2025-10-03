@@ -40,6 +40,18 @@ struct AbzarSendBody {
 }
 
 #[derive(serde::Serialize)]
+struct LinkPreviewOptions {
+    is_disabled: bool,
+    prefer_small_media: bool,
+}
+
+impl Default for LinkPreviewOptions {
+    fn default() -> Self {
+        Self { is_disabled: false, prefer_small_media: true }
+    }
+}
+
+#[derive(serde::Serialize)]
 struct SendMessageBody<'a> {
     chat_id: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,6 +59,7 @@ struct SendMessageBody<'a> {
     text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     parse_mode: Option<&'static str>,
+    link_preview_options: LinkPreviewOptions,
 }
 
 #[utoipa::path(
@@ -73,6 +86,7 @@ async fn r_send(body: Json<AbzarSendBody>) -> Horp {
         message_thread_id: ch.thread.as_ref().map(|v| v.as_str()),
         text: body.text.clone(),
         parse_mode: body.parse_mode.map(|v| v.as_str()),
+        link_preview_options: Default::default(),
     };
 
     let r = conf.tc.post(url).json(&bd).send().await?;
@@ -205,6 +219,7 @@ async fn r_send_mp(form: MultipartForm<AbzarSendMpBody>) -> Horp {
         message_thread_id: ch.thread.as_ref().map(|v| v.as_str()),
         text: form.text.clone(),
         parse_mode: form.parse_mode.as_ref().map(|v| v.as_str()),
+        link_preview_options: Default::default(),
     };
 
     let r = conf.tc.post(url).json(&bd).send().await?;
