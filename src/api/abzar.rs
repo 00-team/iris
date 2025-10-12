@@ -167,11 +167,19 @@ async fn r_send_file(form: MultipartForm<AbzarSendFileBody>) -> Horp {
         sf = sf.text("message_thread_id", tid.clone());
     }
 
-    let r = conf.tc.post(url).multipart(sf).send().await?;
-    if r.status() != 200 {
-        log::error!("[tel_err]: {:#?}", r.text().await);
-        return crate::err!(SendFailed, "sending file to telegram failed");
+    async fn send_gg(
+        conf: &Config, url: reqwest::Url, sf: reqwest::multipart::Form,
+    ) {
+        let Ok(r) = conf.tc.post(url).multipart(sf).send().await else {
+            return;
+        };
+        if r.status() != 200 {
+            log::error!("[tel_err]: {:#?}", r.text().await);
+            // return crate::err!(SendFailed, "sending file to telegram failed");
+        }
     }
+
+    tokio::task::spawn(send_gg(conf, url, sf));
 
     Ok(HttpResponse::Ok().finish())
 }
