@@ -1,5 +1,6 @@
 use crate::config::Config;
 use actix_files as af;
+use actix_multipart::form::MultipartFormConfig;
 use actix_web::{
     App, HttpServer, middleware,
     web::{ServiceConfig, scope},
@@ -40,6 +41,15 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::new("%s %r %Ts"))
+            .app_data(
+                MultipartFormConfig::default()
+                    .total_limit(200 * 1024 * 1024)
+                    .memory_limit(200 * 1024 * 1024)
+                    .error_handler(|e, _rq| {
+                        log::error!("mpf: {e:#?}");
+                        err!(r, FileTooBig, e.to_string()).into()
+                    }),
+            )
             // .wrap(
             //     actix_cors::Cors::default()
             //         .allowed_origin("https://sky.gooje.app")
